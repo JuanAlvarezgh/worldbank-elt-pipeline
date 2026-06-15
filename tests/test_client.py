@@ -46,7 +46,7 @@ def test_get_retries_on_429_then_succeeds():
     client = WorldBankClient(base_delay=0.01, sleep=sleeps.append)
     rows = list(client.fetch_indicator("SP.POP.TOTL", 2020, 2020))
     assert rows == []
-    assert len(sleeps) == 1
+    assert sleeps == [0.01]  # backoff = base_delay * 2**0
 
 
 @responses.activate
@@ -82,3 +82,34 @@ def test_raises_on_malformed_payload():
     responses.add(responses.GET, COUNTRY_URL, json={"message": "boom"}, status=200)
     with pytest.raises(WorldBankAPIError):
         list(WorldBankClient().fetch_countries())
+
+
+@responses.activate
+def test_raises_on_malformed_pages_metadata():
+    payload = [{"page": 1, "pages": "lots"},
+               [{"indicator": {"id": "SP.POP.TOTL"}, "countryiso3code": "USA",
+                 "date": "2020", "value": 1}]]
+    responses.add(responses.GET, IND_URL, json=payload, status=200)
+    with pytest.raises(WorldBankAPIError):
+        list(WorldBankClient().fetch_indicator("SP.POP.TOTL", 2020, 2020))
+
+
+@responses.activate
+def test_fetch_indicator_sends_date_range():
+    responses.add(responses.GET, IND_URL, json=[{"page": 1, "pages": 1}, []], status=200)
+    list(WorldBankClient().fetch_indicator("SP.POP.TOTL", 2018, 2022))
+    assert "date=2018%3A2022" in responses.calls[0].request.url
+
+
+def test_client_context_manager_closes_session():
+    class FakeSession:
+        def __init__(self):
+            self.closed = False
+
+        def close(self):
+            self.closed = True
+
+    session = FakeSession()
+    with WorldBankClient(session=session) as client:
+        assert client.session is session
+    assert session.closed is True

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from typing import Any
 
 import requests
 
@@ -20,7 +21,7 @@ class WorldBankAPIError(RuntimeError):
 class WorldBankClient:
     def __init__(self, session: requests.Session | None = None, base_url: str = BASE_URL,
                  per_page: int = 1000, max_retries: int = 5, base_delay: float = 0.5,
-                 sleep=time.sleep):
+                 sleep: Callable[[float], None] = time.sleep):
         self.session = session or requests.Session()
         self.base_url = base_url
         self.per_page = per_page
@@ -28,7 +29,16 @@ class WorldBankClient:
         self.base_delay = base_delay
         self._sleep = sleep
 
-    def _get(self, url: str, params: dict) -> object:
+    def close(self) -> None:
+        self.session.close()
+
+    def __enter__(self) -> WorldBankClient:
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
+        self.close()
+
+    def _get(self, url: str, params: dict) -> Any:
         attempt = 0
         while True:
             resp = self.session.get(url, params=params, timeout=30)
@@ -57,7 +67,13 @@ class WorldBankClient:
             if not data:
                 return
             yield from data
-            if page >= int(meta.get("pages", 1)):
+            try:
+                total_pages = int(meta.get("pages", 1))
+            except (TypeError, ValueError) as exc:
+                raise WorldBankAPIError(
+                    f"Malformed 'pages' in metadata for {path}: {meta!r}"
+                ) from exc
+            if page >= total_pages:
                 return
             page += 1
 
