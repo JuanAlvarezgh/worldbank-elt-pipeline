@@ -1,4 +1,5 @@
 import pytest
+import requests
 import responses
 
 from worldbank_extractor.client import WorldBankClient, WorldBankAPIError
@@ -54,6 +55,26 @@ def test_get_raises_after_max_retries():
     for _ in range(10):
         responses.add(responses.GET, COUNTRY_URL, json={}, status=503)
     client = WorldBankClient(max_retries=3, base_delay=0.0, sleep=lambda d: None)
+    with pytest.raises(WorldBankAPIError):
+        list(client.fetch_countries())
+
+
+@responses.activate
+def test_get_retries_on_network_timeout_then_succeeds():
+    responses.add(responses.GET, IND_URL, body=requests.exceptions.ReadTimeout("boom"))
+    responses.add(responses.GET, IND_URL, json=[{"page": 1, "pages": 1}, []], status=200)
+    sleeps = []
+    client = WorldBankClient(base_delay=0.01, sleep=sleeps.append)
+    rows = list(client.fetch_indicator("SP.POP.TOTL", 2020, 2020))
+    assert rows == []
+    assert sleeps == [0.01]
+
+
+@responses.activate
+def test_get_raises_after_max_retries_on_timeout():
+    for _ in range(10):
+        responses.add(responses.GET, COUNTRY_URL, body=requests.exceptions.ConnectionError("down"))
+    client = WorldBankClient(max_retries=2, base_delay=0.0, sleep=lambda d: None)
     with pytest.raises(WorldBankAPIError):
         list(client.fetch_countries())
 

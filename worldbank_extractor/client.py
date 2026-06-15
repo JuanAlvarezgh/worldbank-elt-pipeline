@@ -38,16 +38,26 @@ class WorldBankClient:
     def __exit__(self, *exc_info: object) -> None:
         self.close()
 
+    def _retry_or_raise(self, attempt: int, url: str, reason: str) -> None:
+        """Back off before the next attempt, or raise once retries are exhausted."""
+        if attempt >= self.max_retries:
+            raise WorldBankAPIError(f"Max retries exceeded for {url}: {reason}")
+        delay = self.base_delay * (2 ** attempt)
+        logger.warning("WB API %s -> %s, retrying in %.2fs", url, reason, delay)
+        self._sleep(delay)
+
     def _get(self, url: str, params: dict) -> Any:
         attempt = 0
         while True:
-            resp = self.session.get(url, params=params, timeout=30)
+            try:
+                resp = self.session.get(url, params=params, timeout=30)
+            except (requests.Timeout, requests.ConnectionError) as exc:
+                # Transient network failures are retryable, just like 429/5xx.
+                self._retry_or_raise(attempt, url, repr(exc))
+                attempt += 1
+                continue
             if resp.status_code in RETRY_STATUS:
-                if attempt >= self.max_retries:
-                    raise WorldBankAPIError(f"Max retries exceeded for {url}: {resp.status_code}")
-                delay = self.base_delay * (2 ** attempt)
-                logger.warning("WB API %s -> %s, retrying in %.2fs", url, resp.status_code, delay)
-                self._sleep(delay)
+                self._retry_or_raise(attempt, url, str(resp.status_code))
                 attempt += 1
                 continue
             if resp.status_code != 200:
