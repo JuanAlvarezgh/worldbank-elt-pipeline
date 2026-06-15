@@ -1,0 +1,43 @@
+version: 2
+models:
+  - name: dim_pais
+    description: >
+      Dimension de paises, granularidad: una fila por pais soberano identificado por codigo ISO3.
+      Fuente: stg_paises; las geografias agregadas del Banco Mundial (regiones, grupos de ingreso,
+      "World") son excluidas por el extractor.
+    columns:
+      - name: id_pais
+        tests: [unique, not_null]
+
+  - name: dim_indicador
+    description: >
+      Dimension de indicadores, granularidad: una fila por indicador. Fuente directa del seed
+      curado `indicadores` (codigo -> nombre/tema/unidad), no del extracto raw de la API.
+    columns:
+      - name: id_indicador
+        tests: [unique, not_null]
+
+  - name: hechos_valor_indicador
+    description: >
+      Tabla de hechos a granularidad pais x indicador x anio. Inner join con dim_pais y
+      dim_indicador: solo sobreviven filas que coincidan con ambas dimensiones; esto descarta
+      geografias agregadas/regionales y cualquier indicador que no este en el seed, lo cual
+      hace validos los tests de relaciones.
+    columns:
+      - name: llave_valor
+        tests: [unique, not_null]
+      - name: id_pais
+        tests:
+          - not_null
+          - relationships: {to: ref('dim_pais'), field: id_pais}
+      - name: id_indicador
+        tests:
+          - not_null
+          - relationships: {to: ref('dim_indicador'), field: id_indicador}
+      - name: anio
+        tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 1960, max_value: 2100}
+      - name: valor
+        tests:
+          - not_null

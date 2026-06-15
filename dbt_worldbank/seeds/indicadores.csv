@@ -1,0 +1,9 @@
+codigo_indicador,nombre_indicador,tema,unidad
+NY.GDP.MKTP.CD,GDP (current US$),Economia,USD
+NY.GDP.PCAP.CD,GDP per capita (current US$),Economia,USD
+SP.POP.TOTL,Population total,Poblacion,Personas
+SP.DYN.LE00.IN,Life expectancy at birth,Salud,Anios
+SL.UEM.TOTL.ZS,Unemployment (% of labor force),Trabajo,Porcentaje
+SE.XPD.TOTL.GD.ZS,Government education expenditure (% of GDP),Educacion,Porcentaje
+EG.ELC.ACCS.ZS,Access to electricity (% of population),Infraestructura,Porcentaje
+SH.XPD.CHEX.GD.ZS,Current health expenditure (% of GDP),Salud,Porcentaje

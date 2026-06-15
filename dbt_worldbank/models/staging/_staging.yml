@@ -1,0 +1,10 @@
+version: 2
+models:
+  - name: stg_paises
+    columns:
+      - name: pais_iso3
+        tests: [unique, not_null]
+  - name: stg_valores_indicador
+    columns:
+      - name: valor
+        tests: [not_null]

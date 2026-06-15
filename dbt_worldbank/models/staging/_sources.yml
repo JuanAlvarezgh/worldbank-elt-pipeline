@@ -1,0 +1,11 @@
+version: 2
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: paises
+      - name: valores_indicador
+        loaded_at_field: cargado_en
+        freshness:
+          warn_after: {count: 30, period: day}
+          error_after: {count: 90, period: day}
