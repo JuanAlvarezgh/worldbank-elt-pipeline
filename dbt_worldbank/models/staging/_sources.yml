@@ -1,0 +1,11 @@
+version: 2
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: countries
+      - name: indicator_values
+        loaded_at_field: loaded_at
+        freshness:
+          warn_after: {count: 30, period: day}
+          error_after: {count: 90, period: day}

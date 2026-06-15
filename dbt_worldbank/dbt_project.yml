@@ -1,0 +1,21 @@
+name: worldbank
+version: "1.0.0"
+profile: worldbank
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  worldbank:
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: marts
+
+seeds:
+  worldbank:
+    +schema: marts
