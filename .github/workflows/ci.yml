@@ -31,8 +31,28 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check .
       - run: pytest -v
-      - name: Create raw schema for dbt sources
-        run: python -c "import os, psycopg; from load.postgres_loader import ensure_schema; ensure_schema(psycopg.connect(os.environ['WAREHOUSE_DSN']))"
+      - name: Seed a deterministic raw fixture for dbt
+        run: |
+          python - <<'PY'
+          import os
+          import psycopg
+          from load.postgres_loader import ensure_schema, upsert_countries, upsert_values
+          from worldbank_extractor.models import CountryRow, ValueRow
+
+          conn = psycopg.connect(os.environ["WAREHOUSE_DSN"])
+          ensure_schema(conn)
+          upsert_countries(conn, [
+              CountryRow("USA", "US", "United States", "North America",
+                         "High income", "Washington D.C.", -77.0, 38.9),
+              CountryRow("COL", "CO", "Colombia", "Latin America & Caribbean",
+                         "Upper middle income", "Bogota", -74.1, 4.6),
+          ])
+          upsert_values(conn, [
+              ValueRow("SP.POP.TOTL", "USA", 2020, 331_000_000.0),
+              ValueRow("NY.GDP.PCAP.CD", "USA", 2020, 63_000.0),
+              ValueRow("SP.DYN.LE00.IN", "COL", 2020, 74.8),
+          ])
+          PY
       - name: dbt build
         working-directory: dbt_worldbank
         run: |
@@ -40,3 +60,15 @@ jobs:
           dbt seed
           dbt run
           dbt test
+      - name: Assert the fact table is non-empty
+        run: |
+          python - <<'PY'
+          import os
+          import psycopg
+          conn = psycopg.connect(os.environ["WAREHOUSE_DSN"])
+          with conn.cursor() as cur:
+              cur.execute("select count(*) from marts.fact_indicator_value")
+              n = cur.fetchone()[0]
+          print("fact_indicator_value rows:", n)
+          assert n > 0, "fact table is empty - pipeline produced no data"
+          PY
