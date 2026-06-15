@@ -33,12 +33,15 @@ def worldbank_elt():
             return upsert_countries(conn, client.fetch_countries())
 
     @task
-    def extract_load_values(start_year: int = 1990, end_year: int = 2023) -> int:
+    def extract_load_values(start_year: int = 1990) -> int:
         import psycopg
+        from airflow.operators.python import get_current_context
 
         from load.postgres_loader import ensure_schema, upsert_values
         from worldbank_extractor.client import WorldBankClient
 
+        # Ingest up to the year of the scheduled run so the pipeline keeps current.
+        end_year = get_current_context()["data_interval_end"].year
         client = WorldBankClient()
         total = 0
         with psycopg.connect(os.environ["WAREHOUSE_DSN"]) as conn:
