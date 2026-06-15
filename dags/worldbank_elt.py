@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from datetime import timedelta
 
 import pendulum
 from airflow.decorators import dag, task
@@ -18,6 +19,9 @@ DBT_DIR = "/opt/airflow/dbt_worldbank"
     start_date=pendulum.datetime(2024, 1, 1, tz="UTC"),
     catchup=False,
     tags=["worldbank", "elt"],
+    # The World Bank API is publicly hosted and occasionally returns transient
+    # timeouts / 5xx / spurious 4xx under load; task-level retries ride those out.
+    default_args={"retries": 3, "retry_delay": timedelta(seconds=30)},
 )
 def worldbank_elt():
     @task
