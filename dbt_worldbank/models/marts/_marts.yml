@@ -1,0 +1,28 @@
+version: 2
+models:
+  - name: dim_country
+    columns:
+      - name: country_id
+        tests: [unique, not_null]
+
+  - name: dim_indicator
+    columns:
+      - name: indicator_id
+        tests: [unique, not_null]
+
+  - name: fact_indicator_value
+    columns:
+      - name: value_key
+        tests: [unique, not_null]
+      - name: country_id
+        tests:
+          - not_null
+          - relationships: {to: ref('dim_country'), field: country_id}
+      - name: indicator_id
+        tests:
+          - not_null
+          - relationships: {to: ref('dim_indicator'), field: indicator_id}
+      - name: year
+        tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 1960, max_value: 2100}
