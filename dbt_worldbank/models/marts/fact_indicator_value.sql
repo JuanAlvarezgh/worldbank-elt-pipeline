@@ -8,6 +8,7 @@ indicators as (
     select indicator_id from {{ ref('dim_indicator') }}
 )
 select
+    -- natural key: country_iso3 + indicator_code + year (aliased below as country_id, indicator_id)
     {{ dbt_utils.generate_surrogate_key(['v.country_iso3', 'v.indicator_code', 'v.year']) }}
         as value_key,
     v.country_iso3   as country_id,

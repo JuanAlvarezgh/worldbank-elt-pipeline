@@ -1,5 +1,6 @@
 select
     country_iso3 as country_id,
+    iso2_code,
     country_name,
     region,
     income_level,

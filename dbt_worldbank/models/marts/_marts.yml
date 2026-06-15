@@ -1,16 +1,28 @@
 version: 2
 models:
   - name: dim_country
+    description: >
+      Country dimension, grain: one row per sovereign country keyed by ISO3 code.
+      Sourced from stg_countries; World Bank aggregate geographies (regions, income
+      groups, "World") are excluded upstream by the extractor.
     columns:
       - name: country_id
         tests: [unique, not_null]
 
   - name: dim_indicator
+    description: >
+      Indicator dimension, grain: one row per indicator. Sourced directly from the
+      curated `indicators` seed (code -> name/topic/unit), not from the raw API extract.
     columns:
       - name: indicator_id
         tests: [unique, not_null]
 
   - name: fact_indicator_value
+    description: >
+      Fact at grain country x indicator x year. Inner-joined to dim_country and
+      dim_indicator so only rows matching both dimensions survive: this intentionally
+      drops aggregate/regional geographies and any indicator not in the seed, which is
+      what keeps the relationships tests below valid.
     columns:
       - name: value_key
         tests: [unique, not_null]
@@ -26,3 +38,6 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range: {min_value: 1960, max_value: 2100}
+      - name: value
+        tests:
+          - not_null
