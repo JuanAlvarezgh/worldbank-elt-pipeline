@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environment / secrets
+.env
+*.local
+
+# dbt
+dbt_worldbank/target/
+dbt_worldbank/dbt_packages/
+dbt_worldbank/logs/
+.user.yml
+
+# Airflow
+airflow/logs/
+logs/
+airflow.db
+airflow-webserver.pid
+standalone_admin_password.txt
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
