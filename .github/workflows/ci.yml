@@ -1,0 +1,42 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: warehouse
+          POSTGRES_PASSWORD: warehouse
+          POSTGRES_DB: warehouse
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U warehouse"
+          --health-interval 5s --health-timeout 5s --health-retries 5
+    env:
+      WAREHOUSE_DSN: postgresql://warehouse:warehouse@localhost:5433/warehouse
+      WAREHOUSE_HOST: localhost
+      WAREHOUSE_PORT: "5433"
+      WAREHOUSE_USER: warehouse
+      WAREHOUSE_PASSWORD: warehouse
+      WAREHOUSE_DB: warehouse
+      DBT_PROFILES_DIR: ${{ github.workspace }}/dbt_worldbank
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: pytest -v
+      - name: Create raw schema for dbt sources
+        run: python -c "import os, psycopg; from load.postgres_loader import ensure_schema; ensure_schema(psycopg.connect(os.environ['WAREHOUSE_DSN']))"
+      - name: dbt build
+        working-directory: dbt_worldbank
+        run: |
+          dbt deps
+          dbt seed
+          dbt run
+          dbt test
