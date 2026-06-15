@@ -9,7 +9,7 @@ requires-python = ">=3.11"
 dependencies = ["requests>=2.31", "psycopg[binary]>=3.1"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "responses>=0.25", "ruff>=0.5", "dbt-postgres>=1.7,<2.0"]
+dev = ["pytest>=8", "responses>=0.25", "ruff>=0.5", "dbt-core~=1.9.0", "dbt-postgres~=1.9.0"]
 
 [tool.setuptools]
 packages = ["worldbank_extractor", "load"]
